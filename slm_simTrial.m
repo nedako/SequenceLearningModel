@@ -60,10 +60,10 @@ while numPresses<maxPresses && i<maxTime/dT
     i=i+1; 
 end; 
 
-if (nargout>1) 
-SIM.X = X(:,1:i-1,:); % Hidden state 
-SIM.S = S(:,1:i-1,:); % Stimulus present 
-SIM.B = B(1,1:i-1);     % Bound 
-SIM.t = t(1,1:i-1);    % Time 
-end; 
+if (nargout>1)
+    SIM.X = X(:,1:i-1,:); % Hidden state
+    SIM.S = S(:,1:i-1,:); % Stimulus present
+    SIM.B = B(1,1:i-1);     % Bound
+    SIM.t = t(1,1:i-1);    % Time
+end;
 

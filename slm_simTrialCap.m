@@ -27,10 +27,10 @@ remPress = maxPresses;            % Remaining presses
 
 A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
      ones(M.numOptions)*M.Ainhibit; 
-
+T.pressTime = NaN*ones(maxPresses,1);
 % Start time-by-time simulation 
 
-while numPresses<decSteps && i<maxTime/dT
+while remPress && i<maxTime/dT
     
     % Update the stimulus: Fixed stimulus time
     indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
@@ -46,29 +46,40 @@ while numPresses<decSteps && i<maxTime/dT
         X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(ceil(j/M.capacity)) .* S(:,i,j) + dT*eps(:,1,j);
     end
     % Determine if we issue a decision
-    [nDecision ]
-    indx = nDecision * M.capacity - (M.capacity-1):min(nDecision * M.capacity , maxPresses);
-    if nDecision<=decSteps && ~isPressing && any(X(:,i+1,indx)>B(i+1))
-        for prs = indx
-            [~,T.response(prs,1)]=max(X(:,i+1,prs));
-            T.decisionTime(prs,1) = t(i+1);                            % Decision made at this time
-            T.pressTime(prs,1) = T.decisionTime(nDecision)+M.capacity*M.dT_motor; % Press time delayed by motor delay
-            isPressing = 1;                % Motor system engaged
+    
+    indx1= nDecision * M.capacity - (M.capacity-1):min(nDecision * M.capacity , maxPresses);
+    hit_thresh = 0;
+    if ~isPressing 
+        for prs = indx1
+            if any(X(:,i+1,prs)>B(i+1))
+                [~,T.response(prs,1)]=max(X(:,i+1,prs));
+                T.decisionTime(prs,1) = t(i+1);                            % Decision made at this time
+                T.pressTime(prs,1) = T.decisionTime(nDecision)+M.capacity*M.dT_motor; % Press time delayed by motor delay
+                hit_thresh = hit_thresh +1;
+            end
+            if hit_thresh >1
+                isPressing = 1;                % Motor system engaged
+            end
+            if (isPressing)
+                if (t(i+1))>=T.pressTime(prs)
+                    isPressing = 0;
+                    remPress = remPress -1;
+                    %                     nDecision = nDecision+1;       % Waiting for the next decision
+                end;
+            end
         end
-        nDecision = nDecision+1;       % Waiting for the next decision
     end;
     
     % Update the motor system: Checking if current movement is done
-    if (isPressing)
-        if (t(i+1))>=T.pressTime(prs)
-            isPressing = 0; 
-            remPress = remPress - M.capacity;
-            numPresses = numPresses + min(remPress , M.capacity); 
-        end; 
-    end 
-    i=i+1; 
-end; 
-
+    
+    if (t(i+1))>=T.pressTime(prs)
+        nDecision = nDecision+1;       % Waiting for the next decision
+    end;
+    [nDecision prs]
+    i=i+1;
+end;
+tmax = T.pressTime(maxPresses);
+i = find(t == tmax);
 if (nargout>1)
     SIM.X = X(:,1:i-1,:); % Hidden state
     SIM.S = S(:,1:i-1,:); % Stimulus present
