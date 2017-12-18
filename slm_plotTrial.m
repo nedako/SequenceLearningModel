@@ -5,7 +5,7 @@ function slm_plotTrial(SIM,T,varargin);
 style = 'multipanel'; 
 vararginoptions(varargin,{'style'}); 
 figure('color' , 'white')
-[numOptions,~,numPresses] = size(SIM.X);
+[~,~,numPresses] = size(SIM.X);
 
 numDec = unique(T.decisionTime);
 for i = 1:length(numDec)
@@ -22,6 +22,6 @@ for i=1:numPresses
     drawline(T.decisionTime(i),'color','r'); 
     drawline(T.pressTime(i),'color','k'); 
     hold off; 
-    title(['Decision process between 5 options for press(es) ' , num2str(i)])
+    title(['Decision process No. ' ,num2str(T.decNum(i)), ', for press(es) ' , num2str(i)])
 end; 
 

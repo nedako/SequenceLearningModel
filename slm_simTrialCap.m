@@ -10,7 +10,14 @@ vararginoptions(varargin,{'dT','maxTime'});
 maxPresses = max(T.numPress); 
 
 % number of decision steps is defined by the number of stimuli devided by capacity
-dec=1: ceil(maxPresses/M.capacity);  % Number of decision 
+if isfield(T , 'Horizon') && T.Horizon<M.capacity
+    dec=1: max(ceil(maxPresses/M.capacity) , ceil(maxPresses/T.Horizon));  % Number of decision
+    T.stimTime(T.Horizon+1:end) = NaN;
+    maxPlan = min(M.capacity , T.Horizon);
+else
+    dec=1: ceil(maxPresses/M.capacity);  % Number of decision
+end
+
 decSteps = max(dec);
 
 % initialize variables 
@@ -40,15 +47,15 @@ while remPress && i<maxTime/dT
     
     % Update the evidence state
     eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
-%     mult=exp(-[dec-nDecision]./M.capacity);  % How much stimulus exponentia decay
+%     mult=exp(-[dec-nDecision]./maxPlan);  % How much stimulus exponentia decay
     mult(nDecision:end) = linDecay(1:max(dec)-nDecision+1);
     mult(dec<nDecision)=0;                  % Made decisions will just decay
     for j =1:maxPresses
-        X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(ceil(j/M.capacity)) .* S(:,i,j) + dT*eps(:,1,j);
+        X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(ceil(j/maxPlan)) .* S(:,i,j) + dT*eps(:,1,j);
     end
     % Determine if we issue a decision
     
-    indx1= nDecision * M.capacity - (M.capacity-1):min(nDecision * M.capacity , maxPresses);
+    indx1= nDecision * maxPlan - (maxPlan-1):min(nDecision * maxPlan , maxPresses);
     hit_thresh = 0;
     if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>B(i+1))) == length(indx1)
         count = 1;
@@ -56,6 +63,10 @@ while remPress && i<maxTime/dT
             [~,T.response(prs,1)]=max(X(:,i+1,prs));
             T.decisionTime(prs,1) = t(i+1);                            % Decision made at this time
             T.pressTime(prs,1) = T.decisionTime(prs)+count*M.dT_motor; % Press time delayed by motor delay
+            if sum(isnan(T.stimTime))
+                idx2  = find(isnan(T.stimTime));
+                T.stimTime(idx2(1)) = T.pressTime(prs,1);
+            end
             isPressing = 1;                % Motor system engaged
             count = count+1;
         end
@@ -65,7 +76,7 @@ while remPress && i<maxTime/dT
     if (isPressing)
         if (t(i+1))>=T.pressTime(prs)
             isPressing = 0;
-            remPress = remPress - M.capacity;
+            remPress = remPress - maxPlan;
             nDecision = nDecision+1;       % Waiting for the next decision
         end; 
     end 
