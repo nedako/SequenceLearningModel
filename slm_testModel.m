@@ -42,25 +42,31 @@ switch(what)
         M.SigEps    = 0.02;   % Standard deviation of the gaussian noise 
         M.Bound     = 0.45;     % Boundary condition 
         M.numOptions = 5;    % Number of response options 
-        M.capacity   = 1;   % Capacity for preplanning (buffer size) 
+        M.capacity   = 5;   % Capacity for preplanning (buffer size) 
         
         % Make experiment 
         T.TN = 1; 
-        T.numPress = 5; 
-        T.stimTime = [0;0;0;0;0];  
-        T.forcedPressTime = nan(5,2); 
-        T.stimulus = [1;2;5;4;3];  
+        T.numPress = 10; 
+        T.stimTime = zeros(T.numPress , 1);  
+        T.forcedPressTime = nan(T.numPress,2); 
+        T.stimulus = [1;2;5;4;3;3;5;2;2;4];  
+        % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+        T.Horizon = 7;    
         
         R=[]; 
-        for i=1:1000
-            [TR,SIM]=slm_simTrial(M,T); 
+        for i=1:100
+            i
+            [TR,SIM]=slm_simTrialCap(M,T); 
             slm_plotTrial(SIM,TR); 
             R=addstruct(R,TR); 
         end; 
-            % slm_plotTrial(SIM,TR); 
-        subplot(1,2,1); 
-        histplot(R.pressTime,'split',R.stimulus==R.response,'style_bar1'); 
-        subplot(1,2,2); 
+        figure('color' , 'white')
+        histogram(R.pressTime(R.stimulus==R.response , :)); 
+        hold on
+        histogram(R.pressTime(R.stimulus~=R.response , :)); 
+        legend({'Correct Trials', 'Error Trials'})
+        title('Distribution of Press Times')
+        
         
         keyboard; 
         
