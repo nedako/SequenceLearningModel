@@ -7,7 +7,7 @@ function [T,SIM]=slm_simTrialCap(M,T,varargin);
 % for sequential response tasks 
 
 dT = 2;     % delta-t in ms
-maxTime = 10000; % Maximal time for trial simulation 
+maxTime = 50000; % Maximal time for trial simulation 
 vararginoptions(varargin,{'dT','maxTime'}); 
 % Determine length of the trial 
 maxPresses = max(T.numPress); 
@@ -51,7 +51,7 @@ while remPress && i<maxTime/dT
     % Update the stimulus: Fixed stimulus time
     indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
     % stimuli of greater than Horizon size will be unavailable
-    for j=indx'
+    for j=indx
         S(T.stimulus(j),i,j)=1;
     end;
     
@@ -71,13 +71,13 @@ while remPress && i<maxTime/dT
     if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>B(i+1))) == length(indx1)
         count = 1;
         for prs = indx1
-            [~,T.response(prs,1)]=max(X(:,i+1,prs));
-            T.decisionTime(prs,1) = t(i+1);                            % Decision made at this time
-            T.pressTime(prs,1) = T.decisionTime(prs)+count*M.dT_motor; % Press time delayed by motor delay
+            [~,T.response(1,prs)]=max(X(:,i+1,prs));
+            T.decisionTime(1,prs) = t(i+1);                            % Decision made at this time
+            T.pressTime(1,prs) = T.decisionTime(prs)+count*M.dT_motor; % Press time delayed by motor delay
             % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
             if sum(isnan(T.stimTime))
                 idx2  = find(isnan(T.stimTime));
-                T.stimTime(idx2(1)) = T.pressTime(prs,1);
+                T.stimTime(idx2(1)) = T.pressTime(1,prs);
             end
             isPressing = 1;                % Motor system engaged
             count = count+1;
@@ -92,16 +92,37 @@ while remPress && i<maxTime/dT
             remPress = remPress - maxPlan;
             nDecision = nDecision+1;       % Waiting for the next decision
         end; 
-    end 
-    i=i+1; 
-end; 
-tmax = T.pressTime(maxPresses);
-i = find(t == tmax);
-if (nargout>1)
-    SIM.X = X(:,1:i-1,:); % Hidden state
-    SIM.S = S(:,1:i-1,:); % Stimulus present
-    SIM.B = B(1,1:i-1);     % Bound
-    SIM.t = t(1,1:i-1);    % Time
-    SIM.bufferSize = M.capacity;
-    SIM.MT = max(T.pressTime);
+    end
+    i=i+1;
 end;
+% because the muber of presses to be planned is high, sometime the trial
+% times out and the decisionis not reached, so we need to account for that
+if ~isfield(T , 'pressTime') || (length(T.pressTime) < maxPresses && i >= maxTime/dT)
+    T.decisionTime(length(T.pressTime)+1 : maxPresses) = NaN;
+    T.response(length(T.pressTime)+1 : maxPresses) = NaN;
+    T.pressTime(length(T.pressTime)+1 : maxPresses) = NaN;
+    tmax = NaN;
+    if (nargout>1)
+        SIM.X = NaN; % Hidden state
+        SIM.S = NaN; % Stimulus present
+        SIM.B = NaN;     % Bound
+        SIM.t = NaN;    % Time
+        SIM.bufferSize = M.capacity;
+    end;
+else
+    T.MT = max(T.pressTime,[],2);
+    T.isError = zeros(size(T.TN));
+    for i = 1:length(T.isError)
+        T.isError(i) = ~isequal(T.stimulus(i,:) , T.response(i,:));
+    end
+    tmax = T.pressTime(maxPresses);
+    i = find(t == tmax);
+    if (nargout>1)
+        SIM.X = X(:,1:i-1,:); % Hidden state
+        SIM.S = S(:,1:i-1,:); % Stimulus present
+        SIM.B = B(1,1:i-1);     % Bound
+        SIM.t = t(1,1:i-1);    % Time
+        SIM.bufferSize = M.capacity;
+    end;
+end
+

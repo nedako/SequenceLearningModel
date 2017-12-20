@@ -30,7 +30,7 @@ while numPresses<maxPresses && i<maxTime/dT
    
     % Update the stimulus: Fixed stimulus time  
     indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
-    for j=indx' 
+    for j=indx 
         S(T.stimulus(j),i,j)=1;
     end; 
     
@@ -43,7 +43,7 @@ while numPresses<maxPresses && i<maxTime/dT
     end; 
     % Determine if we issue a decision 
     if nDecision<=maxPresses && ~isPressing && any(X(:,i+1,nDecision)>B(i+1)) 
-        [~,T.response]=max(X(:,i+1,nDecision));
+        [~,T.response(nDecision)]=max(X(:,i+1,nDecision));
         T.decisionTime(nDecision) = t(i+1);                            % Decision made at this time    
         T.pressTime(nDecision) = T.decisionTime(nDecision)+M.dT_motor; % Press time delayed by motor delay  
         isPressing = 1;                % Motor system engaged

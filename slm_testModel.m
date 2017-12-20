@@ -33,39 +33,44 @@ switch(what)
         
         keyboard; 
     case 'simpleSeq'
-          % Make Model 
-        M.Aintegrate = 0.98;    % Diagnonal of A  
-        M.Ainhibit = 0;      % Inhibition of A 
-        M.theta_stim = 0.01;  % Rate constant for integration of sensory information 
-        M.dT_motor = 90;     % Motor non-decision time 
-        M.dT_visual = 70;    % Visual non-decision time 
-        M.SigEps    = 0.02;   % Standard deviation of the gaussian noise 
-        M.Bound     = 0.45;     % Boundary condition 
-        M.numOptions = 5;    % Number of response options 
-        M.capacity   = 5;   % Capacity for preplanning (buffer size) 
+        seqLen = 10;
+        R=[];
+        tn = 1;
+        % Make Models with defferent buffer sizes and horizons
+        for cap = 1:7
+            for hrzn = 1: seqLen - 1
+               
+                M.Aintegrate = 0.98;    % Diagnonal of A
+                M.Ainhibit = 0;      % Inhibition of A
+                M.theta_stim = 0.5;  % Rate constant for integration of sensory information
+                M.dT_motor = 90;     % Motor non-decision time
+                M.dT_visual = 70;    % Visual non-decision time
+                M.SigEps    = 0.015;   % Standard deviation of the gaussian noise
+                M.Bound     = 0.45;     % Boundary condition
+                M.numOptions = 5;    % Number of response options
+                M.capacity   = cap;   % Capacity for preplanning (buffer size)
+                
+                % Make experiment
+                T.TN = tn;
+                T.bufferSize = cap; % to have buffer size and horizon in the same structure
+                T.numPress = seqLen;
+                T.stimTime = zeros(1 , seqLen);
+                T.forcedPressTime = nan(1 , seqLen);
+                % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                T.Horizon = hrzn;
+                for i=1:20
+                     [cap hrzn i]
+                    % generate random stimuli every rep
+                    T.stimulus = randi(5 , 1, seqLen );
+                    [TR,SIM]=slm_simTrialCap(M,T);
+                    %  slm_plotTrial(SIM,TR);
+                   R=addstruct(R,TR);
+                end;
+                tn = tn +1;
+            end
+        end
+        slm_plotTrial('BlockMT' , SIM , R )
         
-        % Make experiment 
-        T.TN = 1; 
-        T.numPress = 10; 
-        T.stimTime = zeros(T.numPress , 1);  
-        T.forcedPressTime = nan(T.numPress,2); 
-        T.stimulus = [1;2;5;4;3;3;5;2;2;4];  
-        % Horizon feature added. stimTime will be the actual time that the stimulus came on.
-        T.Horizon = 7;    
-        
-        R=[]; 
-        for i=1:100
-            i
-            [TR,SIM]=slm_simTrialCap(M,T); 
-            slm_plotTrial(SIM,TR); 
-            R=addstruct(R,TR); 
-        end; 
-        figure('color' , 'white')
-        histogram(R.pressTime(R.stimulus==R.response , :)); 
-        hold on
-        histogram(R.pressTime(R.stimulus~=R.response , :)); 
-        legend({'Correct Trials', 'Error Trials'})
-        title('Distribution of Press Times')
         
         
         keyboard; 
