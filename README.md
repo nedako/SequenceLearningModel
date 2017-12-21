@@ -10,7 +10,14 @@ slm_simTrial function is the exact same as the upstream master for comparison.
 For M.capacity = 1 , the functions slm_simTrial and slm_simTrialCap will be the same.
 I have also made some changes to the slm_plotTrial and slm_testModel in my branch.
 # Problems to be fixed: 
-buffer size 1 shows the fastest MT compared to others.
+buffer size 1 shows the fastest MT compared to higher buffersizes, which considering the data, shouldn't be the case.
+
+Reason: 
+when planning more than 1 digit at the same time, the execution command is not issued unless all the digits within planning range hit the boundary at the same time. This can take considerable longer than one digit, since out of N digits that are being planned even if 1 is not above threshold, the horserace has to continue for all.
+
+Possible Solutions:
+1 -  lower the noise SD exponentially when planning more than 1 digits
+2-  boost the information integration rate
 
 
 # Important note1 : 
@@ -23,6 +30,6 @@ I changed the indexing within the T structure, so that each trail is added as a 
 in my simulations I cranked up the integration rate to 0.5 to speed up batch trial simulations.
 
 # Important note4 : 
-the data structure slm_CapHorz is the generated and saved for seqLength = 10,  with horizon sizes between [1:9] and buffer sizes between [1:7], . load it up, and Run slm_plotTrial(‘BlockMT’ , SIM ,R) to see MT.
+the data structure slm_CapHorz.mat is generated and saved for seqLength = 10,  with horizon sizes between [1:9] and buffer sizes between [1:7], . load it up, and Run slm_plotTrial(‘BlockMT’ , SIM ,R) to see MT.
 
 
