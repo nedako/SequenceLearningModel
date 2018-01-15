@@ -35,19 +35,17 @@ switch what
         end;
     case 'BlockMT'
         colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3]};
-        if isfield(T , 'Horizon') && isfield(T , 'bufferSize')
-           S = tapply(T , {'Horizon' , 'bufferSize'} , {'MT' , 'nanmean'});
-        else
-            T.Horizon = ones(size(T.TN)) * (size(T.stimulus , 2) -1); % full
-            T.bufferSize = ones(size(T.TN)) * SIM.bufferSize(1); 
-            S = tapply(T , {'Horizon' , 'bufferSize'} , {'MT' , 'nanmean'});
+        for i = 1:length(T.TN)
+            T.H(i,1) = unique(unique(T.Horizon(i , ~isnan(T.Horizon(i,:)))));
         end
+        S = tapply(T , {'H' , 'bufferSize'} , {'MT' , 'nanmean'});
+        
         bs = unique(S.bufferSize);
-        H = unique(S.Horizon);
+        H = unique(S.H);
         figure('color' , 'white')
         subplot(211)
         if length(bs)>1 && length(H)>1 
-            [x, p , e] = lineplot([T.Horizon , T.bufferSize]  ,  T.MT , 'style_shade');
+            [x, p , e] = lineplot([T.H , T.bufferSize]  ,  T.MT , 'style_shade');
             count = 1;
             for i = 1 :length(x)/length(H) : length(x)
                 text(x(i)+1 , max(T.MT) , ['Horizon = ' , num2str(H(count))])
@@ -55,7 +53,7 @@ switch what
             end
             xlabel('Buffer size')
         elseif length(bs)==1 && length(H)>1
-            [x, p , e] = lineplot([T.Horizon]  ,  T.MT , 'style_shade');
+            [x, p , e] = lineplot([T.H]  ,  T.MT , 'style_shade');
             xlabel('Horizon size')
         elseif length(bs)>1 && length(H)==1
             [x, p , e] = lineplot([T.bufferSize]  ,  T.MT , 'style_shade');
@@ -67,6 +65,7 @@ switch what
         grid on
         
         title('Movement Time in Correct Trials')
+        set(gca , 'Box' , 'off' , 'FontSize', 20) 
         subplot(212)
         leg = {};
         for i = 1:length(bs)
@@ -78,8 +77,7 @@ switch what
         xlabel('Horizon size')
         ylabel('msec')
         legend(leg)
-        set(gca , 'Box' , 'off')
-        
+        set(gca , 'Box' , 'off' , 'FontSize', 20) 
     case 'IPIHist'
         figure('color' , 'white')
         histogram(T.pressTime(~T.isError , :)); 
@@ -87,4 +85,52 @@ switch what
         histogram(T.pressTime(logical(T.isError) , :)); 
         legend({'Correct Trials', 'Error Trials'})
         title('Distribution of Press Times')
+    case 'IPIHorizon'
+        colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3],[.4 0 .4]};
+        for i = 1:length(T.TN)
+            T.H(i,1) = unique(unique(T.Horizon(i , ~isnan(T.Horizon(i,:)))));
+        end
+        T.IPI = diff( T.pressTime',1)';
+        S = tapply(T , {'H' , 'bufferSize'} , {'MT' , 'nanmean'} , {'IPI' , 'nanmedian'});
+        
+        
+        bs = unique(S.bufferSize);
+        H = unique(S.H);
+        figure('color' , 'white')
+        if length(bs)>1 && length(H)>1 
+           buff = input('which buffer size?')
+           S = getrow(S , S.bufferSize == buff);
+           leg = {};
+           for h = 1:length(H)
+                plot(S.IPI(S.H==H(h), :) , 'Linewidth' , 3 , 'color' , colorz{H(h)});
+                hold on
+                leg = [leg , ['Horizon = ' , num2str(H(h))]];
+            end
+            xlabel('IPI number')
+            title(['Inter-press intervals  - buffer size = ' , num2str(buff)])
+            
+        elseif length(bs)==1 && length(H)>1
+            leg = {};
+            for h = 1:length(H)
+                plot(S.IPI(S.H==H(h) , :) , 'Linewidth' , 3 , 'color' , colorz{H(h)});
+                hold on
+                leg = [leg , ['Horizon = ' , num2str(H(h))]];
+            end
+            xlabel('IPI number')
+            title('Inter-press intervals')
+        elseif length(bs)>1 && length(H)==1
+            leg = {};
+            for buff = 1:length(bs)
+                plot(S.IPI(S.bufferSize==bs(buff) , :) , 'Linewidth' , 3 , 'color' , colorz{bs(buff)});
+                hold on
+                leg = [leg , ['buffer size = ' , num2str(bs(buff))]];
+            end
+            xlabel('IPI number')
+            title('Inter-press intervals')
+        end
+        set(gca , 'Box' , 'off' , 'FontSize', 20) 
+        grid on
+        legend(leg)
+        
+       
 end

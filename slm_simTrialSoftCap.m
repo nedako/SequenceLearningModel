@@ -1,11 +1,11 @@
-function [T,SIM]=slm_simTrialCap(M,T,varargin);
+function [T,SIM]=slm_simTrialSoftCap(M,T,varargin);
 % function [T,SIM]=slm_simTrialCap(M,T);
 % incoporates horizon size (T.Horizon) as well as buffer size (M.capacity)
 % multiple planning possible
 % as long as M.capacity = 1,this funcion should work exacly same as [T,SIM]=slm_simTrial(M,T);
 % Simulates a trial using a parallel evidence-accumulation model 
 % for sequential response tasks 
-
+M.capacity = 1; % always set capacity to 1 since it's soft capacity
 dT = 2;     % delta-t in ms
 maxTime = 50000; % Maximal time for trial simulation 
 vararginoptions(varargin,{'dT','maxTime'}); 
@@ -13,21 +13,14 @@ vararginoptions(varargin,{'dT','maxTime'});
 maxPresses = max(T.numPress); 
 
 % number of decision steps is defined by the M.capacity and T.Horizon, whichever results in more decision steps
-if isfield(T , 'Horizon') && T.Horizon<M.capacity
-    % Number of motor decision that have to be made. possible that multiple
-    % presses are planned in one motro decision
-    dec=1: max(ceil(maxPresses/M.capacity) , ceil(maxPresses/T.Horizon));  
-    % maximum number of presses that can be planned is limitted by either buffer size or the amounnt of information reveiled (horizon).
-    maxPlan = min(M.capacity , T.Horizon);
-else
-    dec=1: ceil(maxPresses/M.capacity);  % Number of decision
-    maxPlan = M.capacity;
-end
+dec=1: maxPresses;  % Number of decision
+maxPlan = M.capacity;
 if isfield(T , 'Horizon')
     % set the stimTime for presses that are not shown at time 0 to NaN.
     % These will be filled with press times
     T.stimTime(T.Horizon+1:end) = NaN;
 end
+
 decSteps = max(dec);
 
 % initialize variables 
@@ -51,7 +44,9 @@ while remPress && i<maxTime/dT
     mult = zeros(1,length(dec));
     % Update the stimulus: Fixed stimulus time
     indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
-
+%     if ~isempty(indx)
+%         keyboard
+%     end
     % stimuli of greater than Horizon size will be unavailable
     for j=indx
         S(T.stimulus(j),i,j)=1;
@@ -77,7 +72,7 @@ while remPress && i<maxTime/dT
             T.decisionTime(1,prs) = t(i+1);                            % Decision made at this time
             T.pressTime(1,prs) = T.decisionTime(prs)+count*M.dT_motor; % Press time delayed by motor delay
             % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
-            if sum(isnan(T.stimTime))
+            if sum(isnan(T.stimTime)) 
                 idx2  = find(isnan(T.stimTime));
                 T.stimTime(idx2(1)) = T.pressTime(1,prs);
             end

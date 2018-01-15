@@ -1,0 +1,77 @@
+function vararout=slm_testModelCap(what,varargin)
+% Wrapper function to test different aspects of the sml toolbox 
+switch(what)
+   
+    case 'singleResp'
+        % Make Model 
+        M.Aintegrate = 1;    % Diagnonal of A  
+        M.Ainhibit = 0;      % Inhibition of A 
+        M.theta_stim = 0.01;  % Rate constant for integration of sensory information 
+        M.dT_motor = 90;     % Motor non-decision time 
+        M.dT_visual = 70;    % Visual non-decision time 
+        M.SigEps    = 0.01;   % Standard deviation of the gaussian noise 
+        M.Bound     = 0.45;     % Boundary condition 
+        M.numOptions = 5;    % Number of response options 
+        M.capacity   = 3;   % Capacity for preplanning (buffer size) 
+        % Make experiment 
+        T.TN = 1; 
+        T.numPress = 1; 
+        T.stimTime = 0; 
+        T.forcedPressTime = [NaN NaN]; 
+        T.stimulus = 1; 
+        
+        R=[]; 
+        for i=1:1000
+            [TR,SIM]=slm_simTrial(M,T); 
+            % slm_plotTrial(SIM,TR); 
+            R=addstruct(R,TR); 
+        end; 
+            % slm_plotTrial(SIM,TR); 
+        subplot(1,2,1); 
+        histplot(R.pressTime,'split',R.stimulus==R.response,'style_bar1'); 
+        subplot(1,2,2); 
+   %     
+        keyboard; 
+    case 'simpleSeq'
+        seqLen = 10;
+        R=[];
+        tn = 1;
+        % Make Models with defferent buffer sizes and horizons
+        for cap = 3
+            for hrzn = seqLen - 1
+               
+                M.Aintegrate = 0.98;    % Diagnonal of A
+                M.Ainhibit = 0;      % Inhibition of A
+                M.theta_stim = 0.01; %0.5;  % Rate constant for integration of sensory information
+                M.dT_motor = 90;     % Motor non-decision time
+                M.dT_visual = 70;    % Visual non-decision time
+                M.SigEps    = 0.02;   % Standard deviation of the gaussian noise
+                M.Bound     = 0.45;     % Boundary condition
+                M.numOptions = 5;    % Number of response options
+                M.capacity   = cap;   % Capacity for preplanning (buffer size)
+                
+                % Make experiment
+                T.TN = tn;
+                T.bufferSize = cap; % to have buffer size and horizon in the same structure
+                T.numPress = seqLen;
+                T.stimTime = zeros(1 , seqLen);
+                T.forcedPressTime = nan(1 , seqLen);
+                % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                T.Horizon = hrzn;
+                for i=1:500
+                     [cap hrzn i]
+                    % generate random stimuli every rep
+                    T.stimulus = randi(5 , 1, seqLen );
+                    [TR,SIM]=slm_simTrialCap(M,T);
+%                     [TR,SIM]=slm_simTrialSoftCap(M,T); 
+%                      slm_plotTrial('TrialHorseRace',SIM,TR);
+                   R=addstruct(R,TR);
+                end;
+                tn = tn +1;
+            end
+        end
+        slm_plotTrial('BlockMT' , SIM , R )
+        slm_plotTrial('IPIHist' , SIM , R )
+        keyboard; 
+        
+end
